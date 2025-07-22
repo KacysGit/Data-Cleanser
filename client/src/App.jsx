@@ -1,85 +1,151 @@
-// File: client/src/App.jsx
-// Purpose: Root component with file upload and CSV display table
+// src/App.jsx
+// Main React component with scrollable cells and resizable columns
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import Papa from "papaparse";
 
 export default function App() {
-  const [rows, setRows] = useState([]);
+  const [data, setData] = useState([]);
+  const [colWidths, setColWidths] = useState({}); // Track widths per column
+  const tableRef = useRef(null);
+  const resizingCol = useRef(null);
+  const startX = useRef(0);
+  const startWidth = useRef(0);
 
-  // Handle CSV file upload and parsing
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
     if (!file) return;
 
-    const text = await file.text();
-    const lines = text.trim().split("\n");
-    const parsedRows = lines.map((line) =>
-      // Simple CSV split by commas — can improve later
-      line.split(",").map((cell) => cell.trim())
-    );
-    setRows(parsedRows);
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        setData(results.data);
+
+        // Reset col widths on new data load
+        if (results.data.length > 0) {
+          const keys = Object.keys(results.data[0]);
+          const initialWidths = {};
+          keys.forEach(key => {
+            initialWidths[key] = 150; // default 150px width
+          });
+          setColWidths(initialWidths);
+        }
+      },
+    });
   };
 
+  // Mouse down on resizer handle
+  const onMouseDown = (e, colName) => {
+    resizingCol.current = colName;
+    startX.current = e.clientX;
+    startWidth.current = colWidths[colName] || 150;
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  };
+
+  // Mouse move to resize
+  const onMouseMove = (e) => {
+    if (!resizingCol.current) return;
+    const deltaX = e.clientX - startX.current;
+    const newWidth = Math.max(50, startWidth.current + deltaX); // min 50px
+    setColWidths((prev) => ({
+      ...prev,
+      [resizingCol.current]: newWidth,
+    }));
+  };
+
+  // Mouse up stops resizing
+  const onMouseUp = () => {
+    resizingCol.current = null;
+    document.removeEventListener("mousemove", onMouseMove);
+    document.removeEventListener("mouseup", onMouseUp);
+  };
+
+  if (data.length === 0) {
+    return (
+      <div style={{ padding: "1rem", fontFamily: "Arial, sans-serif" }}>
+        <h1>Upload CSV File</h1>
+        <input type="file" accept=".csv" onChange={handleFileUpload} />
+      </div>
+    );
+  }
+
+  const columns = Object.keys(data[0]);
+
   return (
-    <div style={{ padding: "2rem", maxWidth: "900px", margin: "auto" }}>
-      <h1>Data Cleanser</h1>
+    <div style={{ padding: "1rem", fontFamily: "Arial, sans-serif" }}>
+      <h1>Upload CSV File</h1>
+      <input type="file" accept=".csv" onChange={handleFileUpload} />
 
-      <label htmlFor="file-upload" style={{ display: "block", marginBottom: "0.5rem" }}>
-        Upload CSV File:
-      </label>
-      <input id="file-upload" type="file" accept=".csv" onChange={handleFileChange} />
-
-      {rows.length > 0 && (
+      <div style={{ overflowX: "auto", marginTop: "1rem" }}>
         <table
+          ref={tableRef}
           style={{
-            width: "100%",
             borderCollapse: "collapse",
-            marginTop: "1rem",
-            fontFamily: "Arial, sans-serif",
+            width: "max-content",
+            minWidth: "100%",
           }}
         >
           <thead>
             <tr>
-              {rows[0].map((header, i) => (
+              {columns.map((colName) => (
                 <th
-                  key={i}
+                  key={colName}
                   style={{
-                    border: "1px solid #ddd",
+                    border: "1px solid #ccc",
+                    position: "relative",
+                    width: colWidths[colName],
+                    minWidth: 50,
+                    userSelect: "none",
                     padding: "8px",
-                    backgroundColor: "#f4f4f4",
-                    textAlign: "left",
+                    backgroundColor: "#eee",
                   }}
                 >
-                  {header}
+                  {colName}
+                  {/* Resize handle */}
+                  <div
+                    onMouseDown={(e) => onMouseDown(e, colName)}
+                    style={{
+                      position: "absolute",
+                      right: 0,
+                      top: 0,
+                      height: "100%",
+                      width: "6px",
+                      cursor: "col-resize",
+                      userSelect: "none",
+                    }}
+                  />
                 </th>
               ))}
             </tr>
           </thead>
 
           <tbody>
-            {rows.slice(1).map((row, idx) => (
-              <tr key={idx}>
-                {row.map((cell, i) => (
+            {data.map((row, rowIndex) => (
+              <tr key={rowIndex} style={{ border: "1px solid #ccc" }}>
+                {columns.map((colName, colIndex) => (
                   <td
-                    key={i}
+                    key={colIndex}
                     style={{
-                      border: "1px solid #ddd",
-                      padding: "8px",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      maxWidth: "200px",
+                      border: "1px solid #ccc",
+                      maxWidth: colWidths[colName],
+                      maxHeight: 100,
+                      overflowY: "auto",
+                      whiteSpace: "normal",
+                      padding: "6px 8px",
+                      verticalAlign: "top",
                     }}
-                    title={cell}
                   >
-                    {cell}
+                    {row[colName]}
                   </td>
                 ))}
               </tr>
             ))}
           </tbody>
         </table>
-      )}
+      </div>
     </div>
   );
 }
