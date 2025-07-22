@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { DataGrid } from 'react-data-grid';
 import EditablePopup from './EditablePopup';
 
@@ -6,6 +6,11 @@ export default function DataGridWrapper({ rows, initialColumns }) {
   const [data, setData] = useState(rows);
   const [popup, setPopup] = useState(null);
   const gridRef = useRef(null);
+
+  // Sync internal data state with rows prop changes
+  useEffect(() => {
+    setData(rows);
+  }, [rows]);
 
   // Handle double-clicking a cell
   function handleCellDoubleClick(args, event) {

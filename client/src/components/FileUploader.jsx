@@ -1,8 +1,7 @@
-// client/src/components/FileUploader.jsx
 import React from 'react';
 import Papa from 'papaparse';
 
-export default function FileUploader({ setRows }) {
+export default function FileUploader({ setRawRows }) {
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -12,10 +11,8 @@ export default function FileUploader({ setRows }) {
       skipEmptyLines: true,
       complete: (results) => {
         console.log('Parsed CSV data:', results.data);
-        const rowsWithIndex = results.data.map((row, idx) => ({ idx, ...row }));
-        setRows(rowsWithIndex);
+        setRawRows(results.data); // ✅ this is what triggers regeneration
       },
-
       error: (error) => {
         alert('Error parsing CSV: ' + error.message);
       },
