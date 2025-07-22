@@ -7,14 +7,14 @@ export default function DataGridWrapper({ rows, initialColumns }) {
   const [popup, setPopup] = useState(null);
   const gridRef = useRef(null);
 
-  // Sync internal data state with rows prop changes
+  // Keep internal data in sync with prop
   useEffect(() => {
     setData(rows);
   }, [rows]);
 
-  // Handle double-clicking a cell
   function handleCellDoubleClick(args, event) {
     const { rowIdx, column } = args;
+    if (column.key === 'idx') return; // 🔒 Disable editing for index column
 
     const cell = event.currentTarget;
     const rect = cell.getBoundingClientRect();
@@ -42,7 +42,7 @@ export default function DataGridWrapper({ rows, initialColumns }) {
   const columns = initialColumns.map((col) => ({
     ...col,
     resizable: true,
-    sortable: true,
+    sortable: true
   }));
 
   return (
