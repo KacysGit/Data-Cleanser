@@ -1,151 +1,155 @@
 // src/App.jsx
-// Main React component with scrollable cells and resizable columns
+// Description: React file uploader with fully working column resizing and scrollable cells
 
 import React, { useState, useRef } from "react";
 import Papa from "papaparse";
 
 export default function App() {
   const [data, setData] = useState([]);
-  const [colWidths, setColWidths] = useState({}); // Track widths per column
-  const tableRef = useRef(null);
-  const resizingCol = useRef(null);
-  const startX = useRef(0);
-  const startWidth = useRef(0);
+  const [colWidths, setColWidths] = useState({});
+  const resizing = useRef({ col: null, startX: 0, startWidth: 0 });
 
-  const handleFileUpload = (event) => {
-    const file = event.target.files[0];
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
     if (!file) return;
 
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        setData(results.data);
-
-        // Reset col widths on new data load
-        if (results.data.length > 0) {
-          const keys = Object.keys(results.data[0]);
-          const initialWidths = {};
-          keys.forEach(key => {
-            initialWidths[key] = 150; // default 150px width
-          });
-          setColWidths(initialWidths);
-        }
+        const parsed = results.data;
+        setData(parsed);
+        const keys = Object.keys(parsed[0] || {});
+        const widths = {};
+        keys.forEach((key) => (widths[key] = 200)); // default width
+        setColWidths(widths);
       },
     });
   };
 
-  // Mouse down on resizer handle
-  const onMouseDown = (e, colName) => {
-    resizingCol.current = colName;
-    startX.current = e.clientX;
-    startWidth.current = colWidths[colName] || 150;
-
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
+  const startResizing = (e, col) => {
+    resizing.current = {
+      col,
+      startX: e.clientX,
+      startWidth: colWidths[col],
+    };
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", stopResizing);
   };
 
-  // Mouse move to resize
-  const onMouseMove = (e) => {
-    if (!resizingCol.current) return;
-    const deltaX = e.clientX - startX.current;
-    const newWidth = Math.max(50, startWidth.current + deltaX); // min 50px
+  const handleMouseMove = (e) => {
+    const { col, startX, startWidth } = resizing.current;
+    const dx = e.clientX - startX;
+    const newWidth = Math.max(80, startWidth + dx);
+
     setColWidths((prev) => ({
       ...prev,
-      [resizingCol.current]: newWidth,
+      [col]: newWidth,
     }));
   };
 
-  // Mouse up stops resizing
-  const onMouseUp = () => {
-    resizingCol.current = null;
-    document.removeEventListener("mousemove", onMouseMove);
-    document.removeEventListener("mouseup", onMouseUp);
+  const stopResizing = () => {
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", stopResizing);
+    resizing.current = { col: null, startX: 0, startWidth: 0 };
   };
 
-  if (data.length === 0) {
-    return (
-      <div style={{ padding: "1rem", fontFamily: "Arial, sans-serif" }}>
-        <h1>Upload CSV File</h1>
-        <input type="file" accept=".csv" onChange={handleFileUpload} />
-      </div>
-    );
-  }
-
-  const columns = Object.keys(data[0]);
+  const columns = data.length > 0 ? Object.keys(data[0]) : [];
 
   return (
     <div style={{ padding: "1rem", fontFamily: "Arial, sans-serif" }}>
-      <h1>Upload CSV File</h1>
+      <h1>Upload CSV</h1>
       <input type="file" accept=".csv" onChange={handleFileUpload} />
 
-      <div style={{ overflowX: "auto", marginTop: "1rem" }}>
-        <table
-          ref={tableRef}
+      {data.length > 0 && (
+        <div
           style={{
-            borderCollapse: "collapse",
-            width: "max-content",
-            minWidth: "100%",
+            marginTop: "1rem",
+            overflowX: "auto",
           }}
         >
-          <thead>
-            <tr>
-              {columns.map((colName) => (
-                <th
-                  key={colName}
-                  style={{
-                    border: "1px solid #ccc",
-                    position: "relative",
-                    width: colWidths[colName],
-                    minWidth: 50,
-                    userSelect: "none",
-                    padding: "8px",
-                    backgroundColor: "#eee",
-                  }}
-                >
-                  {colName}
-                  {/* Resize handle */}
-                  <div
-                    onMouseDown={(e) => onMouseDown(e, colName)}
-                    style={{
-                      position: "absolute",
-                      right: 0,
-                      top: 0,
-                      height: "100%",
-                      width: "6px",
-                      cursor: "col-resize",
-                      userSelect: "none",
-                    }}
-                  />
-                </th>
+          <table
+            style={{
+              borderCollapse: "collapse",
+              tableLayout: "fixed",
+              width: "max-content",
+              minWidth: "100%",
+            }}
+          >
+            <colgroup>
+              {columns.map((col) => (
+                <col
+                  key={col}
+                  style={{ width: `${colWidths[col] || 200}px` }}
+                />
               ))}
-            </tr>
-          </thead>
+            </colgroup>
 
-          <tbody>
-            {data.map((row, rowIndex) => (
-              <tr key={rowIndex} style={{ border: "1px solid #ccc" }}>
-                {columns.map((colName, colIndex) => (
-                  <td
-                    key={colIndex}
+            <thead>
+              <tr>
+                {columns.map((col) => (
+                  <th
+                    key={col}
                     style={{
                       border: "1px solid #ccc",
-                      maxWidth: colWidths[colName],
-                      maxHeight: 100,
-                      overflowY: "auto",
-                      whiteSpace: "normal",
-                      padding: "6px 8px",
-                      verticalAlign: "top",
+                      padding: "8px",
+                      background: "#f3f3f3",
+                      position: "relative",
+                      userSelect: "none",
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    {row[colName]}
-                  </td>
+                    {col}
+                    <div
+                      onMouseDown={(e) => startResizing(e, col)}
+                      style={{
+                        position: "absolute",
+                        right: 0,
+                        top: 0,
+                        height: "100%",
+                        width: "6px",
+                        cursor: "col-resize",
+                        zIndex: 10,
+                      }}
+                    />
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+
+            <tbody>
+              {data.map((row, i) => (
+                <tr key={i}>
+                  {columns.map((col, j) => (
+                    <td
+                      key={j}
+                      style={{
+                        border: "1px solid #ccc",
+                        padding: "0",
+                        maxHeight: "100px",
+                        verticalAlign: "top",
+                      }}
+                    >
+                      <div
+                        style={{
+                          maxHeight: "100px",
+                          overflowY: "auto",
+                          overflowX: "auto",
+                          padding: "6px 8px",
+                          whiteSpace: "pre-wrap",
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {row[col]}
+                      </div>
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
