@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 export default function EditablePopup({ value, onSave, onClose, position }) {
   const [editedValue, setEditedValue] = useState(value || '');
   const popupRef = useRef(null);
+  const textareaRef = useRef(null);
 
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
@@ -13,16 +14,32 @@ export default function EditablePopup({ value, onSave, onClose, position }) {
   const [resizing, setResizing] = useState(false);
   const resizeStart = useRef({ x: 0, y: 0, width: 0, height: 0 });
 
-  // Start dragging
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      } else if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        onSave(editedValue);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [editedValue, onClose, onSave]);
+
+  // Drag logic
   const onMouseDownHeader = (e) => {
     e.preventDefault();
     setDragging(true);
     setDragOffset({
       x: e.clientX - popupPosition.left,
-      y: e.clientY - popupPosition.top
+      y: e.clientY - popupPosition.top,
     });
   };
 
+  // Resize logic
   const onMouseDownResize = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -31,7 +48,7 @@ export default function EditablePopup({ value, onSave, onClose, position }) {
       x: e.clientX,
       y: e.clientY,
       width: size.width,
-      height: size.height
+      height: size.height,
     };
   };
 
@@ -39,14 +56,14 @@ export default function EditablePopup({ value, onSave, onClose, position }) {
     if (dragging) {
       setPopupPosition({
         top: e.clientY - dragOffset.y,
-        left: e.clientX - dragOffset.x
+        left: e.clientX - dragOffset.x,
       });
     } else if (resizing) {
       const dx = e.clientX - resizeStart.current.x;
       const dy = e.clientY - resizeStart.current.y;
       setSize({
         width: Math.max(150, resizeStart.current.width + dx),
-        height: Math.max(100, resizeStart.current.height + dy)
+        height: Math.max(100, resizeStart.current.height + dy),
       });
     }
   };
@@ -87,13 +104,13 @@ export default function EditablePopup({ value, onSave, onClose, position }) {
     cursor: 'move',
     userSelect: 'none',
     fontWeight: 'bold',
-    borderBottom: '1px solid #ccc'
+    borderBottom: '1px solid #ccc',
   };
 
   const contentStyle = {
     flex: 1,
     padding: '10px',
-    overflow: 'auto'
+    overflow: 'auto',
   };
 
   const footerStyle = {
@@ -101,7 +118,7 @@ export default function EditablePopup({ value, onSave, onClose, position }) {
     justifyContent: 'flex-end',
     padding: '10px',
     borderTop: '1px solid #ccc',
-    gap: '8px'
+    gap: '8px',
   };
 
   const resizeHandleStyle = {
@@ -111,7 +128,7 @@ export default function EditablePopup({ value, onSave, onClose, position }) {
     width: 12,
     height: 12,
     background: '#ddd',
-    cursor: 'se-resize'
+    cursor: 'se-resize',
   };
 
   return (
@@ -121,9 +138,16 @@ export default function EditablePopup({ value, onSave, onClose, position }) {
       </div>
       <div style={contentStyle}>
         <textarea
+          ref={textareaRef}
           value={editedValue}
           onChange={(e) => setEditedValue(e.target.value)}
-          style={{ width: '100%', height: '100%', resize: 'none' }}
+          style={{
+            width: '100%',
+            height: '100%',
+            resize: 'none',
+            fontFamily: 'inherit',
+            fontSize: 'inherit',
+          }}
         />
       </div>
       <div style={footerStyle}>
