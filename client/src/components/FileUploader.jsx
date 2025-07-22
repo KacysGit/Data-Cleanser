@@ -11,7 +11,7 @@ export default function FileUploader({ setRawRows }) {
       skipEmptyLines: true,
       complete: (results) => {
         console.log('Parsed CSV data:', results.data);
-        setRawRows(results.data); // ✅ this is what triggers regeneration
+        setRawRows(results.data);
       },
       error: (error) => {
         alert('Error parsing CSV: ' + error.message);
