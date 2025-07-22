@@ -68,7 +68,8 @@ export default function App() {
 
   return (
     <div style={{ padding: 20 }}>
-      <h1>Data Cleanser - Hiking Trails</h1>
+      <h1>Data Cleanser</h1>
+      <p> Data Cleaning Has Never Been Easier</p>
       <FileUploader setRawRows={setRawRows} />
 
       {rawRows.length > 0 && (
