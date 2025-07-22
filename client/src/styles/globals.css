@@ -1,10 +1,20 @@
-/* Location: client/src/styles/globals.css */
-body {
-  font-family: sans-serif;
-  margin: 0;
-  padding: 0;
+.fill-grid .rdg-cell {
+  padding: 0 !important;          /* Remove padding to prevent layout issues */
+  overflow: hidden !important;    /* Hide overflow on cell container */
 }
 
-input[type="file"] {
-  margin-bottom: 1rem;
+.fill-grid .rdg-cell > div.scrollable-cell {
+  height: 80px !important;        /* Fixed cell content height */
+  overflow-y: auto !important;    /* Enable vertical scroll */
+  overflow-x: hidden !important;  /* Disable horizontal scroll */
+  white-space: normal !important; /* Wrap text */
+  word-break: break-word !important;
+  padding: 6px !important;
+  box-sizing: border-box !important;
+  line-height: 1.4 !important;
+}
+
+.fill-grid .rdg-viewport,
+.fill-grid .rdg-row {
+  overflow: visible !important; /* Allow scroll inside rows and viewport */
 }
