@@ -1,0 +1,10 @@
+/* Location: client/src/styles/globals.css */
+body {
+  font-family: sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+input[type="file"] {
+  margin-bottom: 1rem;
+}
