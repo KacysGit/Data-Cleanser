@@ -25,10 +25,15 @@ export default function EditablePopup({ value, onSave, onClose }) {
     setPopupPosition({ top, left });
   }, []);
 
-  // Autofocus textarea
+  // Focus and move cursor to end when textarea mounts
   useEffect(() => {
-    textareaRef.current?.focus();
+    if (textareaRef.current) {
+      const textarea = textareaRef.current;
+      textarea.focus();
+      textarea.setSelectionRange(textarea.value.length, textarea.value.length); // move cursor to end
+    }
   }, []);
+
 
   // Keyboard handling
   useEffect(() => {
