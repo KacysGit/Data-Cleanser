@@ -13,8 +13,7 @@ export default function ColumnTogglePanel({
   handleUpdateClick,
   showAll,
   hideAll,
-
-  // NEW props for cleaning columns
+  // Cleaning columns state and setters:
   includeFlagged,
   setIncludeFlagged,
   includeResolved,
@@ -22,7 +21,10 @@ export default function ColumnTogglePanel({
   includeNotes,
   setIncludeNotes,
   includeFlaggedFor,
-  setIncludeFlaggedFor
+  setIncludeFlaggedFor,
+  // Add cleaning show/hide all handlers
+  showAllCleaning,
+  hideAllCleaning
 }) {
   const cleaningKeys = CLEANING_COLUMNS;
 
@@ -45,7 +47,7 @@ export default function ColumnTogglePanel({
         flexWrap: 'wrap'
       }}
     >
-      {/* USER COLUMNS */}
+      {/* MY COLUMNS */}
       <div>
         <strong>My Columns</strong>
         <div style={{ marginTop: 5 }}>
@@ -56,7 +58,11 @@ export default function ColumnTogglePanel({
         </div>
         <div style={{ marginTop: 5 }}>
           {allColumnKeys
-            .filter((key) => key !== 'idx' && !cleaningKeys.includes(key))
+            .filter(
+              (key) =>
+                key !== 'idx' &&
+                !cleaningKeys.includes(key)
+            )
             .map((key) => (
               <label key={key} style={{ display: 'block' }}>
                 <input
@@ -73,69 +79,66 @@ export default function ColumnTogglePanel({
       {/* CLEANING COLUMNS */}
       <div>
         <strong>Cleaning Columns</strong>
-
-        {/* Index */}
-        <label style={{ display: 'block' }}>
-          <input
-            type="checkbox"
-            checked={includeIndex}
-            onChange={toggleIncludeIndex}
-          />{' '}
-          Index
-        </label>
-        {includeIndex && (
-          <div style={{ marginTop: 4 }}>
-            Start at:{' '}
+        <div style={{ marginTop: 5 }}>
+          {/* Index toggle */}
+          <label style={{ display: 'block' }}>
             <input
-              type="number"
-              min={1}
-              value={pendingIndexStart}
-              onChange={(e) => setPendingIndexStart(Number(e.target.value) || 1)}
-              style={{ width: 50, marginRight: 5 }}
-            />
-            <button onClick={handleUpdateClick}>Update</button>
+              type="checkbox"
+              checked={includeIndex}
+              onChange={toggleIncludeIndex}
+            />{' '}
+            Index
+          </label>
+          {includeIndex && (
+            <div style={{ marginTop: 4 }}>
+              Start at:{' '}
+              <input
+                type="number"
+                min={1}
+                value={pendingIndexStart}
+                onChange={(e) =>
+                  setPendingIndexStart(Number(e.target.value) || 1)
+                }
+                style={{ width: 50, marginRight: 5 }}
+              />
+              <button onClick={handleUpdateClick}>Update</button>
+            </div>
+          )}
+
+          {/* Cleaning column toggles */}
+          <div style={{ marginTop: 10, marginBottom: 5 }}>
+            <button onClick={showAllCleaning}>Show All</button>
+            <button onClick={hideAllCleaning} style={{ marginLeft: 5 }}>
+              Hide All
+            </button>
           </div>
-        )}
 
-        {/* Flagged */}
-        <label style={{ display: 'block', marginTop: 8 }}>
-          <input
-            type="checkbox"
-            checked={includeFlagged}
-            onChange={(e) => setIncludeFlagged(e.target.checked)}
-          />{' '}
-          Flagged
-        </label>
+          {cleaningKeys.map((key) => {
+            const includeMap = {
+              flagged: includeFlagged,
+              resolved: includeResolved,
+              notes: includeNotes,
+              flaggedFor: includeFlaggedFor
+            };
+            const setIncludeMap = {
+              flagged: setIncludeFlagged,
+              resolved: setIncludeResolved,
+              notes: setIncludeNotes,
+              flaggedFor: setIncludeFlaggedFor
+            };
 
-        {/* Resolved */}
-        <label style={{ display: 'block', marginTop: 8 }}>
-          <input
-            type="checkbox"
-            checked={includeResolved}
-            onChange={(e) => setIncludeResolved(e.target.checked)}
-          />{' '}
-          Resolved
-        </label>
-
-        {/* Notes */}
-        <label style={{ display: 'block', marginTop: 8 }}>
-          <input
-            type="checkbox"
-            checked={includeNotes}
-            onChange={(e) => setIncludeNotes(e.target.checked)}
-          />{' '}
-          Notes
-        </label>
-
-        {/* Flagged For */}
-        <label style={{ display: 'block', marginTop: 8 }}>
-          <input
-            type="checkbox"
-            checked={includeFlaggedFor}
-            onChange={(e) => setIncludeFlaggedFor(e.target.checked)}
-          />{' '}
-          Flagged For
-        </label>
+            return (
+              <label key={key} style={{ display: 'block', marginTop: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={includeMap[key]}
+                  onChange={() => setIncludeMap[key]((v) => !v)}
+                />{' '}
+                {key}
+              </label>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

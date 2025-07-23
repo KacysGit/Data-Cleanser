@@ -1,4 +1,4 @@
-// client/hooks/useDataStore.js
+// client/src/hooks/useDataStore.js
 import { useState, useEffect } from 'react';
 import { CLEANING_COLUMNS } from '../../constants/cleaningColumns';
 
@@ -11,7 +11,7 @@ export default function useDataStore() {
   const [indexStart, setIndexStart] = useState(1);
   const [pendingIndexStart, setPendingIndexStart] = useState(1);
 
-  // New: Include flags for each cleaning column
+  // Include flags for each cleaning column
   const [includeFlagged, setIncludeFlagged] = useState(true);
   const [includeResolved, setIncludeResolved] = useState(true);
   const [includeNotes, setIncludeNotes] = useState(true);
@@ -73,7 +73,7 @@ export default function useDataStore() {
 
   // Build rows, adding index and cleaning columns if included
   useEffect(() => {
-    const baseRows = rawRows.map((row, i) => ({ ...row }));
+    const baseRows = rawRows.map((row) => ({ ...row }));
 
     if (includeIndex) {
       baseRows.forEach((r, i) => {
@@ -140,38 +140,48 @@ export default function useDataStore() {
   });
 
   // Build column definitions with display names etc.
-  const initialColumns = filteredColumns.map((key) => {
-    let name = key;
-    switch (key) {
-      case 'idx':
-        name = 'Index';
-        break;
-      case 'flagged':
-        name = 'Flagged';
-        break;
-      case 'resolved':
-        name = 'Resolved';
-        break;
-      case 'notes':
-        name = 'Notes';
-        break;
-      case 'flaggedFor':
-        name = 'Flagged For';
-        break;
-      default:
-        // Capitalize first letter for user columns
-        name = key.charAt(0).toUpperCase() + key.slice(1);
+  const initialColumns = (() => {
+    const cols = filteredColumns.map((key) => {
+      let name = key;
+      switch (key) {
+        case 'idx':
+          name = 'Index';
+          break;
+        case 'flagged':
+          name = 'Flagged';
+          break;
+        case 'resolved':
+          name = 'Resolved';
+          break;
+        case 'notes':
+          name = 'Notes';
+          break;
+        case 'flaggedFor':
+          name = 'Flagged For';
+          break;
+        default:
+          name = key.charAt(0).toUpperCase() + key.slice(1);
+      }
+
+      return {
+        key,
+        name,
+        width: key === 'idx' ? 80 : 150,
+        editable: key !== 'idx',
+        resizable: true,
+        sortable: true
+      };
+    });
+
+    // Move 'idx' column to the front if it exists
+    const idxIndex = cols.findIndex((c) => c.key === 'idx');
+    if (idxIndex > -1) {
+      const [idxCol] = cols.splice(idxIndex, 1);
+      cols.unshift(idxCol);
     }
 
-    return {
-      key,
-      name,
-      width: key === 'idx' ? 80 : 150,
-      editable: key !== 'idx',
-      resizable: true,
-      sortable: true
-    };
-  });
+    return cols;
+  })();
 
   function handleUpdateClick() {
     setIndexStart(Math.max(1, pendingIndexStart));
@@ -205,8 +215,6 @@ export default function useDataStore() {
     localStorage.removeItem('dataCache');
     setFileInputKey(Date.now());
   }
-
-  console.log('useDataStore clearData:', clearData);
 
   return {
     rawRows,

@@ -38,7 +38,7 @@ export default function App() {
               handleUpdateClick={store.handleUpdateClick}
               showAll={store.showAll}
               hideAll={store.hideAll}
-
+              
               includeFlagged={store.includeFlagged}
               setIncludeFlagged={store.setIncludeFlagged}
               includeResolved={store.includeResolved}
@@ -47,7 +47,21 @@ export default function App() {
               setIncludeNotes={store.setIncludeNotes}
               includeFlaggedFor={store.includeFlaggedFor}
               setIncludeFlaggedFor={store.setIncludeFlaggedFor}
+
+              showAllCleaning={() => {
+                store.setIncludeFlagged(true);
+                store.setIncludeResolved(true);
+                store.setIncludeNotes(true);
+                store.setIncludeFlaggedFor(true);
+              }}
+              hideAllCleaning={() => {
+                store.setIncludeFlagged(false);
+                store.setIncludeResolved(false);
+                store.setIncludeNotes(false);
+                store.setIncludeFlaggedFor(false);
+              }}
             />
+
 
           )}
 
