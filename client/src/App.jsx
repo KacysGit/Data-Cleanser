@@ -4,8 +4,8 @@ import FileUploader from './components/FileUploader';
 import DataGridWrapper from './components/DataGridWrapper';
 import ColumnTogglePanel from './components/ColumnTogglePanel';
 import Toolbar from './components/Toolbar';
-import useDataStore from './hooks/useDataStore';
-import { exportToCSV } from '/utils/exportCSV';  // <-- import here
+import { useDataStore } from './hooks';
+import { exportToCSV } from './utils/exportCSV';  // <-- import here
 import './styles/globals.css';
 
 export default function App() {
@@ -14,7 +14,7 @@ export default function App() {
   const store = useDataStore();
 
   const handleSave = () => {
-    store.updateRows(store.rows);
+    store.updateRows(store.rawRows);
     store.flushSave();
     setSavedMessageVisible(true);
     setTimeout(() => setSavedMessageVisible(false), 2000);

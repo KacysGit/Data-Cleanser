@@ -1,3 +1,4 @@
+// client/src/components/FileUploader.jsx
 import React from 'react';
 import Papa from 'papaparse';
 
