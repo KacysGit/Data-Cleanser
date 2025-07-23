@@ -1,3 +1,4 @@
+/* client/src/styles/globals.css */
 .fill-grid .rdg-cell {
   padding: 0 !important;          /* Remove padding to prevent layout issues */
   overflow: hidden !important;    /* Hide overflow on cell container */

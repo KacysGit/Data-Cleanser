@@ -1,20 +1,36 @@
-// client/src/components/EditablePopup.jsx
+// client/components/EditablePopup.jsx
 import React, { useEffect, useRef, useState } from 'react';
 
-export default function EditablePopup({ value, onSave, onClose, position }) {
+export default function EditablePopup({ value, onSave, onClose }) {
   const [editedValue, setEditedValue] = useState(value || '');
   const popupRef = useRef(null);
   const textareaRef = useRef(null);
 
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
-  const [popupPosition, setPopupPosition] = useState(position);
+  const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
 
   const [size, setSize] = useState({ width: 300, height: 200 });
   const [resizing, setResizing] = useState(false);
   const resizeStart = useRef({ x: 0, y: 0, width: 0, height: 0 });
 
-  // Keyboard shortcuts
+  // Center popup on mount
+  useEffect(() => {
+    const width = size.width;
+    const height = size.height;
+
+    const top = window.innerHeight / 2 - height / 2;
+    const left = window.innerWidth / 2 - width / 2;
+
+    setPopupPosition({ top, left });
+  }, []);
+
+  // Autofocus textarea
+  useEffect(() => {
+    textareaRef.current?.focus();
+  }, []);
+
+  // Keyboard handling
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
@@ -24,7 +40,6 @@ export default function EditablePopup({ value, onSave, onClose, position }) {
         onSave(editedValue);
       }
     };
-
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [editedValue, onClose, onSave]);
@@ -83,7 +98,7 @@ export default function EditablePopup({ value, onSave, onClose, position }) {
   });
 
   const popupStyle = {
-    position: 'absolute',
+    position: 'fixed', // ✅ FIXED instead of absolute
     top: popupPosition.top,
     left: popupPosition.left,
     width: size.width,

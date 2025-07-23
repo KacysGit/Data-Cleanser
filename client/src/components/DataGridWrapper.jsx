@@ -12,7 +12,7 @@ export default function DataGridWrapper({ rows, initialColumns }) {
     setData(rows);
   }, [rows]);
 
-  function handleCellDoubleClick(args, event) {
+  function handleCellDoubleClick(args) {
     const { rowIdx, column } = args;
     const colKey = column.key;
     if (colKey === 'idx') return;
@@ -22,7 +22,6 @@ export default function DataGridWrapper({ rows, initialColumns }) {
       const newVal = !updated[rowIdx][colKey];
       updated[rowIdx][colKey] = newVal;
 
-      // If resolved is true, auto unflag
       if (colKey === 'resolved' && newVal === true) {
         updated[rowIdx].flagged = false;
       }
@@ -31,18 +30,10 @@ export default function DataGridWrapper({ rows, initialColumns }) {
       return;
     }
 
-    const cell = event.currentTarget;
-    const rect = cell.getBoundingClientRect();
-    const position = {
-      top: rect.top + window.scrollY + rect.height,
-      left: rect.left + window.scrollX
-    };
-
     setPopup({
       rowIdx,
       colKey,
-      value: data[rowIdx][colKey],
-      position
+      value: data[rowIdx][colKey]
     });
   }
 
@@ -94,7 +85,6 @@ export default function DataGridWrapper({ rows, initialColumns }) {
           value={popup.value}
           onSave={handleSave}
           onClose={() => setPopup(null)}
-          position={popup.position}
         />
       )}
     </div>
