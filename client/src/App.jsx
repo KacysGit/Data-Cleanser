@@ -5,6 +5,7 @@ import DataGridWrapper from './components/DataGridWrapper';
 import ColumnTogglePanel from './components/ColumnTogglePanel';
 import Toolbar from './components/Toolbar';
 import useDataStore from './hooks/useDataStore';
+import { exportToCSV } from '/utils/exportCSV';  // <-- import here
 import './styles/globals.css';
 
 export default function App() {
@@ -17,6 +18,10 @@ export default function App() {
     store.flushSave();
     setSavedMessageVisible(true);
     setTimeout(() => setSavedMessageVisible(false), 2000);
+  };
+
+  const handleExport = () => {
+    exportToCSV(store.rows);
   };
 
   return (
@@ -33,6 +38,7 @@ export default function App() {
             panelOpen={showColumnPanel}
             onClear={store.clearData}
             onSave={handleSave}
+            onExport={handleExport}  // <-- pass export handler here
           />
 
           {savedMessageVisible && (
