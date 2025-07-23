@@ -1,3 +1,4 @@
+// client/App.jsx
 import React, { useState } from 'react';
 import FileUploader from './components/FileUploader';
 import DataGridWrapper from './components/DataGridWrapper';
@@ -37,7 +38,17 @@ export default function App() {
               handleUpdateClick={store.handleUpdateClick}
               showAll={store.showAll}
               hideAll={store.hideAll}
+
+              includeFlagged={store.includeFlagged}
+              setIncludeFlagged={store.setIncludeFlagged}
+              includeResolved={store.includeResolved}
+              setIncludeResolved={store.setIncludeResolved}
+              includeNotes={store.includeNotes}
+              setIncludeNotes={store.setIncludeNotes}
+              includeFlaggedFor={store.includeFlaggedFor}
+              setIncludeFlaggedFor={store.setIncludeFlaggedFor}
             />
+
           )}
 
           <DataGridWrapper
