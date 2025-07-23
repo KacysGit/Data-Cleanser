@@ -9,10 +9,18 @@ import './styles/globals.css';
 
 export default function App() {
   const [showColumnPanel, setShowColumnPanel] = useState(false);
+  const [savedMessageVisible, setSavedMessageVisible] = useState(false);
   const store = useDataStore();
 
+  const handleSave = () => {
+    store.updateRows(store.rows);
+    store.flushSave();
+    setSavedMessageVisible(true);
+    setTimeout(() => setSavedMessageVisible(false), 2000);
+  };
+
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: 20, position: 'relative' }}>
       <h1>Data Cleanser</h1>
       <p>Data Cleaning Has Never Been So Easy</p>
 
@@ -24,11 +32,28 @@ export default function App() {
             onTogglePanel={() => setShowColumnPanel((v) => !v)}
             panelOpen={showColumnPanel}
             onClear={store.clearData}
-            onSave={() => {
-              store.updateRows(store.rows);
-              store.flushSave();
-            }}
+            onSave={handleSave}
           />
+
+          {savedMessageVisible && (
+            <div
+              style={{
+                position: 'fixed',
+                top: 20,
+                right: 20,
+                background: '#4caf50',
+                color: 'white',
+                padding: '6px 12px',
+                borderRadius: 4,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                fontWeight: 'bold',
+                transition: 'opacity 0.3s',
+                zIndex: 1000
+              }}
+            >
+              Saved!
+            </div>
+          )}
 
           {showColumnPanel && (
             <ColumnTogglePanel
@@ -42,7 +67,6 @@ export default function App() {
               handleUpdateClick={store.handleUpdateClick}
               showAll={store.showAll}
               hideAll={store.hideAll}
-
               includeFlagged={store.includeFlagged}
               setIncludeFlagged={store.setIncludeFlagged}
               includeResolved={store.includeResolved}
@@ -51,7 +75,6 @@ export default function App() {
               setIncludeNotes={store.setIncludeNotes}
               includeFlaggedFor={store.includeFlaggedFor}
               setIncludeFlaggedFor={store.setIncludeFlaggedFor}
-
               showAllCleaning={store.showAllCleaning}
               hideAllCleaning={store.hideAllCleaning}
             />
