@@ -1,5 +1,5 @@
-// client/src/hooks/useDataStore.js
-import { useState, useEffect, useCallback } from 'react';
+//client/src/hooks/useDataStore.js
+import { useState, useEffect, useCallback, useRef } from 'react';
 import debounce from 'lodash.debounce';
 import { CLEANING_COLUMNS } from '../../constants/cleaningColumns';
 
@@ -21,6 +21,10 @@ export default function useDataStore() {
   // User-uploaded columns visibility
   const [visibleCols, setVisibleCols] = useState([]);
   const [fileInputKey] = useState(Date.now());
+
+  // Unsaved change detection
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const hasUnsavedChangesRef = useRef(false);
 
   // Load saved states from localStorage
   useEffect(() => {
@@ -51,6 +55,17 @@ export default function useDataStore() {
     }
   }, []);
 
+  // Prompt before leaving with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (!hasUnsavedChangesRef.current) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
   // Debounced save function
   const debouncedSave = useCallback(
     debounce((rowsToSave) => {
@@ -72,16 +87,17 @@ export default function useDataStore() {
     [rawRows, includeIndex, indexStart, includeFlagged, includeResolved, includeNotes, includeFlaggedFor, visibleCols]
   );
 
-  // Update rows state and save debounced
+  // Update rows state and flag unsaved changes
   function updateRows(newRows) {
     setRows(newRows);
     setRawRows(newRows);
-    debouncedSave(newRows, newRows);
+    setHasUnsavedChanges(true);
+    hasUnsavedChangesRef.current = true;
+    debouncedSave(newRows);
   }
 
-  // Build rows, adding index and cleaning columns, only if rows not loaded from localStorage
+  // Rebuild rows when display settings change
   useEffect(() => {
-    
     const baseRows = rawRows.map((row) => ({ ...row }));
 
     if (includeIndex) {
@@ -116,26 +132,17 @@ export default function useDataStore() {
     includeFlagged,
     includeResolved,
     includeNotes,
-    includeFlaggedFor,
-    rows.length // add rows.length to skip rebuilding if already loaded
+    includeFlaggedFor
   ]);
 
-  // Determine user-uploaded columns
+  // Determine visible columns
   useEffect(() => {
-    const saved = localStorage.getItem('dataCache');
-    const userHasSetVisibility = saved ? JSON.parse(saved).visibleCols?.length >= 0 : false;
-
-    if (rawRows.length && !userHasSetVisibility && visibleCols.length === 0) {
-      const userKeys = Object.keys(rawRows[0]).filter(
-        (key) => key !== 'idx' && !CLEANING_COLUMNS.includes(key)
-      );
+    if (rawRows.length) {
+      const userKeys = Object.keys(rawRows[0]);
       setVisibleCols(userKeys);
     }
-  }, [rawRows, visibleCols.length]);
+  }, [rawRows]);
 
-
-
-  // Determine which columns to show in grid
   const allColumnKeys = rows.length ? Object.keys(rows[0]) : [];
 
   let filteredColumns = allColumnKeys.filter((key) => {
@@ -150,7 +157,6 @@ export default function useDataStore() {
     return visibleCols.includes(key);
   });
 
-  // Ensure idx is always first
   if (includeIndex && filteredColumns.includes('idx')) {
     filteredColumns = ['idx', ...filteredColumns.filter((k) => k !== 'idx')];
   }
@@ -158,23 +164,12 @@ export default function useDataStore() {
   const initialColumns = filteredColumns.map((key) => {
     let name = key;
     switch (key) {
-      case 'idx':
-        name = 'Index';
-        break;
-      case 'flagged':
-        name = 'Flagged';
-        break;
-      case 'resolved':
-        name = 'Resolved';
-        break;
-      case 'notes':
-        name = 'Notes';
-        break;
-      case 'flaggedFor':
-        name = 'Flagged For';
-        break;
-      default:
-        name = key.charAt(0).toUpperCase() + key.slice(1);
+      case 'idx': name = 'Index'; break;
+      case 'flagged': name = 'Flagged'; break;
+      case 'resolved': name = 'Resolved'; break;
+      case 'notes': name = 'Notes'; break;
+      case 'flaggedFor': name = 'Flagged For'; break;
+      default: name = key.charAt(0).toUpperCase() + key.slice(1);
     }
 
     return {
@@ -187,7 +182,6 @@ export default function useDataStore() {
     };
   });
 
-  // Visibility controls
   function showAll() {
     const userCols = rawRows.length ? Object.keys(rawRows[0]) : [];
     setVisibleCols(userCols);
@@ -220,24 +214,26 @@ export default function useDataStore() {
   }
 
   function handleUpdateClick(newIndexStart) {
-  if (newIndexStart !== undefined) {
-    setIndexStart(Math.max(1, newIndexStart));
-  } else {
-    setIndexStart(Math.max(1, pendingIndexStart));
+    if (newIndexStart !== undefined) {
+      setIndexStart(Math.max(1, newIndexStart));
+    } else {
+      setIndexStart(Math.max(1, pendingIndexStart));
+    }
   }
-}
-
 
   function clearData() {
     setRawRows([]);
     setRows([]);
     setVisibleCols([]);
     localStorage.removeItem('dataCache');
+    hasUnsavedChangesRef.current = false;
+    setHasUnsavedChanges(false);
   }
 
-  // Flush debounce immediately for manual save button
   function flushSave() {
     debouncedSave.flush();
+    hasUnsavedChangesRef.current = false;
+    setHasUnsavedChanges(false);
   }
 
   return {
@@ -268,6 +264,8 @@ export default function useDataStore() {
     showAllCleaning,
     hideAllCleaning,
     fileInputKey,
-    clearData
+    clearData,
+    hasUnsavedChanges,
+    setHasUnsavedChanges
   };
 }
