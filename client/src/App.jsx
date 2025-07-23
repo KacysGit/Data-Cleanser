@@ -24,6 +24,10 @@ export default function App() {
             onTogglePanel={() => setShowColumnPanel((v) => !v)}
             panelOpen={showColumnPanel}
             onClear={store.clearData}
+            onSave={() => {
+              store.updateRows(store.rows);
+              store.flushSave();
+            }}
           />
 
           {showColumnPanel && (
@@ -38,7 +42,7 @@ export default function App() {
               handleUpdateClick={store.handleUpdateClick}
               showAll={store.showAll}
               hideAll={store.hideAll}
-              
+
               includeFlagged={store.includeFlagged}
               setIncludeFlagged={store.setIncludeFlagged}
               includeResolved={store.includeResolved}
@@ -50,15 +54,13 @@ export default function App() {
 
               showAllCleaning={store.showAllCleaning}
               hideAllCleaning={store.hideAllCleaning}
-
             />
-
-
           )}
 
           <DataGridWrapper
             rows={store.rows}
             initialColumns={store.initialColumns}
+            updateRows={store.updateRows}
           />
         </>
       )}

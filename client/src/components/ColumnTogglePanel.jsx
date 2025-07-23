@@ -28,9 +28,42 @@ export default function ColumnTogglePanel({
 }) {
   const cleaningKeys = CLEANING_COLUMNS;
 
+  // Toggle index and immediately call handleUpdateClick if enabling index
   function toggleIncludeIndex(e) {
     setIncludeIndex(e.target.checked);
     if (e.target.checked) handleUpdateClick();
+  }
+
+  // Increment index start and immediately update
+  function incrementIndex() {
+    const newVal = (pendingIndexStart || 1) + 1;
+    setPendingIndexStart(newVal);
+    handleUpdateClick(newVal);
+  }
+
+  // Decrement index start and immediately update
+  function decrementIndex() {
+    const newVal = Math.max(1, (pendingIndexStart || 1) - 1);
+    setPendingIndexStart(newVal);
+    handleUpdateClick(newVal);
+  }
+
+  // On input change, update pendingIndexStart but do NOT call handleUpdateClick yet
+  function onInputChange(e) {
+    const val = e.target.value;
+    if (/^\d*$/.test(val)) {
+      setPendingIndexStart(val === '' ? '' : Number(val));
+    }
+  }
+
+  // On input blur, validate and immediately update
+  function onInputBlur() {
+    let newVal = Number(pendingIndexStart);
+    if (isNaN(newVal) || newVal < 1) {
+      newVal = 1;
+    }
+    setPendingIndexStart(newVal);
+    handleUpdateClick(newVal);
   }
 
   return (
@@ -58,11 +91,7 @@ export default function ColumnTogglePanel({
         </div>
         <div style={{ marginTop: 5 }}>
           {allColumnKeys
-            .filter(
-              (key) =>
-                key !== 'idx' &&
-                !cleaningKeys.includes(key)
-            )
+            .filter((key) => key !== 'idx' && !cleaningKeys.includes(key))
             .map((key) => (
               <label key={key} style={{ display: 'block' }}>
                 <input
@@ -98,18 +127,25 @@ export default function ColumnTogglePanel({
             Index
           </label>
           {includeIndex && (
-            <div style={{ marginTop: 4 }}>
+            <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
               Start at:{' '}
+              <button type="button" onClick={decrementIndex} aria-label="Decrease index start">
+                -
+              </button>
               <input
-                type="number"
-                min={1}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={pendingIndexStart}
-                onChange={(e) =>
-                  setPendingIndexStart(Number(e.target.value) || 1)
-                }
-                style={{ width: 50, marginRight: 5 }}
+                onChange={onInputChange}
+                onBlur={onInputBlur}
+                style={{ width: 50, marginRight: 5, textAlign: 'center' }}
+                aria-label="Index start input"
               />
-              <button onClick={handleUpdateClick}>Update</button>
+              <button type="button" onClick={incrementIndex} aria-label="Increase index start">
+                +
+              </button>
+              {/* Removed Update button as requested */}
             </div>
           )}
 
@@ -141,7 +177,6 @@ export default function ColumnTogglePanel({
           })}
         </div>
       </div>
-
     </div>
   );
 }

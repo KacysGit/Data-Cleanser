@@ -1,5 +1,6 @@
 // client/src/hooks/useDataStore.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import debounce from 'lodash.debounce';
 import { CLEANING_COLUMNS } from '../../constants/cleaningColumns';
 
 export default function useDataStore() {
@@ -26,7 +27,8 @@ export default function useDataStore() {
     const saved = localStorage.getItem('dataCache');
     if (saved) {
       const {
-        rawRows,
+        rawRows: savedRawRows,
+        rows: savedRows,
         includeIndex,
         indexStart,
         includeFlagged,
@@ -35,7 +37,9 @@ export default function useDataStore() {
         includeFlaggedFor,
         visibleCols
       } = JSON.parse(saved);
-      setRawRows(rawRows || []);
+
+      setRawRows(savedRawRows || []);
+      setRows(savedRows || []);
       setIncludeIndex(includeIndex ?? false);
       setIndexStart(indexStart || 1);
       setPendingIndexStart(indexStart || 1);
@@ -47,36 +51,37 @@ export default function useDataStore() {
     }
   }, []);
 
-  // Save states to localStorage on changes
-  useEffect(() => {
-    if (rawRows.length) {
+  // Debounced save function
+  const debouncedSave = useCallback(
+    debounce((rowsToSave) => {
       localStorage.setItem(
         'dataCache',
         JSON.stringify({
           rawRows,
+          rows: rowsToSave,
           includeIndex,
           indexStart,
           includeFlagged,
           includeResolved,
           includeNotes,
           includeFlaggedFor,
-          visibleCols
+          visibleCols,
         })
       );
-    }
-  }, [
-    rawRows,
-    includeIndex,
-    indexStart,
-    includeFlagged,
-    includeResolved,
-    includeNotes,
-    includeFlaggedFor,
-    visibleCols
-  ]);
+    }, 500),
+    [rawRows, includeIndex, indexStart, includeFlagged, includeResolved, includeNotes, includeFlaggedFor, visibleCols]
+  );
 
-  // Build rows, adding index and cleaning columns
+  // Update rows state and save debounced
+  function updateRows(newRows) {
+    setRows(newRows);
+    setRawRows(newRows);
+    debouncedSave(newRows, newRows);
+  }
+
+  // Build rows, adding index and cleaning columns, only if rows not loaded from localStorage
   useEffect(() => {
+    
     const baseRows = rawRows.map((row) => ({ ...row }));
 
     if (includeIndex) {
@@ -111,16 +116,24 @@ export default function useDataStore() {
     includeFlagged,
     includeResolved,
     includeNotes,
-    includeFlaggedFor
+    includeFlaggedFor,
+    rows.length // add rows.length to skip rebuilding if already loaded
   ]);
 
   // Determine user-uploaded columns
   useEffect(() => {
-    if (rawRows.length) {
-      const userKeys = Object.keys(rawRows[0]);
+    const saved = localStorage.getItem('dataCache');
+    const userHasSetVisibility = saved ? JSON.parse(saved).visibleCols?.length >= 0 : false;
+
+    if (rawRows.length && !userHasSetVisibility && visibleCols.length === 0) {
+      const userKeys = Object.keys(rawRows[0]).filter(
+        (key) => key !== 'idx' && !CLEANING_COLUMNS.includes(key)
+      );
       setVisibleCols(userKeys);
     }
-  }, [rawRows]);
+  }, [rawRows, visibleCols.length]);
+
+
 
   // Determine which columns to show in grid
   const allColumnKeys = rows.length ? Object.keys(rows[0]) : [];
@@ -206,9 +219,14 @@ export default function useDataStore() {
     );
   }
 
-  function handleUpdateClick() {
+  function handleUpdateClick(newIndexStart) {
+  if (newIndexStart !== undefined) {
+    setIndexStart(Math.max(1, newIndexStart));
+  } else {
     setIndexStart(Math.max(1, pendingIndexStart));
   }
+}
+
 
   function clearData() {
     setRawRows([]);
@@ -217,11 +235,17 @@ export default function useDataStore() {
     localStorage.removeItem('dataCache');
   }
 
+  // Flush debounce immediately for manual save button
+  function flushSave() {
+    debouncedSave.flush();
+  }
 
   return {
     rawRows,
     rows,
     setRawRows,
+    updateRows,
+    flushSave,
     includeIndex,
     setIncludeIndex,
     indexStart,

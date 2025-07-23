@@ -1,16 +1,10 @@
 // client/components/DataGridWrapper.jsx
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { DataGrid } from 'react-data-grid';
 import EditablePopup from './EditablePopup';
 
-export default function DataGridWrapper({ rows, initialColumns }) {
-  const [data, setData] = useState(rows);
+export default function DataGridWrapper({ rows, initialColumns, updateRows }) {
   const [popup, setPopup] = useState(null);
-  const gridRef = useRef(null);
-
-  useEffect(() => {
-    setData(rows);
-  }, [rows]);
 
   function handleCellDoubleClick(args) {
     const { rowIdx, column } = args;
@@ -18,7 +12,7 @@ export default function DataGridWrapper({ rows, initialColumns }) {
     if (colKey === 'idx') return;
 
     if (colKey === 'flagged' || colKey === 'resolved') {
-      const updated = [...data];
+      const updated = [...rows];
       const newVal = !updated[rowIdx][colKey];
       updated[rowIdx][colKey] = newVal;
 
@@ -26,24 +20,24 @@ export default function DataGridWrapper({ rows, initialColumns }) {
         updated[rowIdx].flagged = false;
       }
 
-      setData(updated);
+      updateRows(updated);
       return;
     }
 
     setPopup({
       rowIdx,
       colKey,
-      value: data[rowIdx][colKey]
+      value: rows[rowIdx][colKey]
     });
   }
 
   function handleSave(newValue) {
-    const updated = [...data];
+    const updated = [...rows];
     const key = popup.colKey;
     const val =
       key === 'flaggedFor' ? newValue.split(',').map((s) => s.trim()) : newValue;
     updated[popup.rowIdx][key] = val;
-    setData(updated);
+    updateRows(updated);
     setPopup(null);
   }
 
@@ -68,10 +62,10 @@ export default function DataGridWrapper({ rows, initialColumns }) {
   });
 
   return (
-    <div style={{ position: 'relative' }} ref={gridRef}>
+    <div style={{ position: 'relative' }}>
       <DataGrid
         columns={columns}
-        rows={data}
+        rows={rows}
         rowHeight={40}
         className="fill-grid"
         defaultColumnOptions={{
