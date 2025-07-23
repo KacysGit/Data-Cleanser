@@ -1,4 +1,4 @@
-//client/src/hooks/useDataStore.js
+// client/src/hooks/useDataStore.js
 import { useState, useEffect, useCallback, useRef } from 'react';
 import debounce from 'lodash.debounce';
 import { CLEANING_COLUMNS } from '../../constants/cleaningColumns';
@@ -18,8 +18,9 @@ export default function useDataStore() {
   const [includeNotes, setIncludeNotes] = useState(true);
   const [includeFlaggedFor, setIncludeFlaggedFor] = useState(true);
 
-  // User-uploaded columns visibility
+  // User-uploaded columns
   const [visibleCols, setVisibleCols] = useState([]);
+  const [allUserColumnKeys, setAllUserColumnKeys] = useState([]);
   const [fileInputKey] = useState(Date.now());
 
   // Unsaved change detection
@@ -80,14 +81,22 @@ export default function useDataStore() {
           includeResolved,
           includeNotes,
           includeFlaggedFor,
-          visibleCols,
+          visibleCols
         })
       );
     }, 500),
-    [rawRows, includeIndex, indexStart, includeFlagged, includeResolved, includeNotes, includeFlaggedFor, visibleCols]
+    [
+      rawRows,
+      includeIndex,
+      indexStart,
+      includeFlagged,
+      includeResolved,
+      includeNotes,
+      includeFlaggedFor,
+      visibleCols
+    ]
   );
 
-  // Update rows state and flag unsaved changes
   function updateRows(newRows) {
     setRows(newRows);
     setRawRows(newRows);
@@ -96,9 +105,8 @@ export default function useDataStore() {
     debouncedSave(newRows);
   }
 
-  // Rebuild rows when display settings change
   useEffect(() => {
-    const baseRows = rawRows.map((row) => ({ ...row }));
+    let baseRows = rawRows.map((row) => ({ ...row }));
 
     if (includeIndex) {
       baseRows.forEach((r, i) => {
@@ -124,6 +132,26 @@ export default function useDataStore() {
       else if (!includeFlaggedFor) delete r.flaggedFor;
     });
 
+    baseRows = baseRows.map((row) => {
+      const filteredRow = {};
+      Object.keys(row).forEach((key) => {
+        const isCleaningColumn = CLEANING_COLUMNS.includes(key);
+        if (
+          (includeIndex && key === 'idx') ||
+          (isCleaningColumn && (
+            (key === 'flagged' && includeFlagged) ||
+            (key === 'resolved' && includeResolved) ||
+            (key === 'notes' && includeNotes) ||
+            (key === 'flaggedFor' && includeFlaggedFor)
+          )) ||
+          visibleCols.includes(key)
+        ) {
+          filteredRow[key] = row[key];
+        }
+      });
+      return filteredRow;
+    });
+
     setRows(baseRows);
   }, [
     rawRows,
@@ -132,16 +160,23 @@ export default function useDataStore() {
     includeFlagged,
     includeResolved,
     includeNotes,
-    includeFlaggedFor
+    includeFlaggedFor,
+    visibleCols
   ]);
 
-  // Determine visible columns
+  const initialized = useRef(false);
+
   useEffect(() => {
-    if (rawRows.length) {
-      const userKeys = Object.keys(rawRows[0]);
+    if (!initialized.current && rawRows.length) {
+      const userKeys = Object.keys(rawRows[0]).filter(
+        (key) => !CLEANING_COLUMNS.includes(key) && key !== 'idx'
+      );
       setVisibleCols(userKeys);
+      setAllUserColumnKeys(userKeys);
+      initialized.current = true;
     }
   }, [rawRows]);
+
 
   const allColumnKeys = rows.length ? Object.keys(rows[0]) : [];
 
@@ -164,12 +199,23 @@ export default function useDataStore() {
   const initialColumns = filteredColumns.map((key) => {
     let name = key;
     switch (key) {
-      case 'idx': name = 'Index'; break;
-      case 'flagged': name = 'Flagged'; break;
-      case 'resolved': name = 'Resolved'; break;
-      case 'notes': name = 'Notes'; break;
-      case 'flaggedFor': name = 'Flagged For'; break;
-      default: name = key.charAt(0).toUpperCase() + key.slice(1);
+      case 'idx':
+        name = 'Index';
+        break;
+      case 'flagged':
+        name = 'Flagged';
+        break;
+      case 'resolved':
+        name = 'Resolved';
+        break;
+      case 'notes':
+        name = 'Notes';
+        break;
+      case 'flaggedFor':
+        name = 'Flagged For';
+        break;
+      default:
+        name = key.charAt(0).toUpperCase() + key.slice(1);
     }
 
     return {
@@ -183,8 +229,7 @@ export default function useDataStore() {
   });
 
   function showAll() {
-    const userCols = rawRows.length ? Object.keys(rawRows[0]) : [];
-    setVisibleCols(userCols);
+    setVisibleCols(allUserColumnKeys);
   }
 
   function hideAll() {
@@ -225,6 +270,7 @@ export default function useDataStore() {
     setRawRows([]);
     setRows([]);
     setVisibleCols([]);
+    setAllUserColumnKeys([]);
     localStorage.removeItem('dataCache');
     hasUnsavedChangesRef.current = false;
     setHasUnsavedChanges(false);
@@ -258,6 +304,7 @@ export default function useDataStore() {
     handleUpdateClick,
     initialColumns,
     visibleCols,
+    allUserColumnKeys,
     toggleColumn,
     showAll,
     hideAll,

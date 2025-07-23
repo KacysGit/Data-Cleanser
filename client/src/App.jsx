@@ -63,7 +63,7 @@ export default function App() {
 
           {showColumnPanel && (
             <ColumnTogglePanel
-              allColumnKeys={store.rows.length ? Object.keys(store.rows[0]) : []}
+              allColumnKeys={store.allUserColumnKeys}
               visibleCols={store.visibleCols}
               includeIndex={store.includeIndex}
               pendingIndexStart={store.pendingIndexStart}
@@ -83,6 +83,7 @@ export default function App() {
               setIncludeFlaggedFor={store.setIncludeFlaggedFor}
               showAllCleaning={store.showAllCleaning}
               hideAllCleaning={store.hideAllCleaning}
+              allUserColumnKeys={store.allUserColumnKeys}
             />
           )}
 
