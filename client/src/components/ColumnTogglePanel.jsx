@@ -1,4 +1,4 @@
-// client/components/ColumnTogglePanel.jsx
+// client/src/components/ColumnTogglePanel.jsx
 import React from 'react';
 import { CLEANING_COLUMNS } from '../../constants/cleaningColumns';
 
@@ -22,7 +22,7 @@ export default function ColumnTogglePanel({
   setIncludeNotes,
   includeFlaggedFor,
   setIncludeFlaggedFor,
-  // Add cleaning show/hide all handlers
+  // Cleaning columns show/hide all handlers
   showAllCleaning,
   hideAllCleaning
 }) {
@@ -80,7 +80,15 @@ export default function ColumnTogglePanel({
       <div>
         <strong>Cleaning Columns</strong>
         <div style={{ marginTop: 5 }}>
-          {/* Index toggle */}
+          {/* Show/Hide All first */}
+          <div style={{ marginBottom: 10 }}>
+            <button onClick={showAllCleaning}>Show All</button>
+            <button onClick={hideAllCleaning} style={{ marginLeft: 5 }}>
+              Hide All
+            </button>
+          </div>
+
+          {/* Then Index toggle */}
           <label style={{ display: 'block' }}>
             <input
               type="checkbox"
@@ -105,14 +113,7 @@ export default function ColumnTogglePanel({
             </div>
           )}
 
-          {/* Cleaning column toggles */}
-          <div style={{ marginTop: 10, marginBottom: 5 }}>
-            <button onClick={showAllCleaning}>Show All</button>
-            <button onClick={hideAllCleaning} style={{ marginLeft: 5 }}>
-              Hide All
-            </button>
-          </div>
-
+          {/* Now show the other checkboxes */}
           {cleaningKeys.map((key) => {
             const includeMap = {
               flagged: includeFlagged,
@@ -140,6 +141,7 @@ export default function ColumnTogglePanel({
           })}
         </div>
       </div>
+
     </div>
   );
 }

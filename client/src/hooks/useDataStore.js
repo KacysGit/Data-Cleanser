@@ -11,15 +11,15 @@ export default function useDataStore() {
   const [indexStart, setIndexStart] = useState(1);
   const [pendingIndexStart, setPendingIndexStart] = useState(1);
 
-  // Include flags for each cleaning column
+  // Cleaning column visibility flags
   const [includeFlagged, setIncludeFlagged] = useState(true);
   const [includeResolved, setIncludeResolved] = useState(true);
   const [includeNotes, setIncludeNotes] = useState(true);
   const [includeFlaggedFor, setIncludeFlaggedFor] = useState(true);
 
-  // Columns from user file
+  // User-uploaded columns visibility
   const [visibleCols, setVisibleCols] = useState([]);
-  const [fileInputKey, setFileInputKey] = useState(Date.now());
+  const [fileInputKey] = useState(Date.now());
 
   // Load saved states from localStorage
   useEffect(() => {
@@ -32,7 +32,8 @@ export default function useDataStore() {
         includeFlagged,
         includeResolved,
         includeNotes,
-        includeFlaggedFor
+        includeFlaggedFor,
+        visibleCols
       } = JSON.parse(saved);
       setRawRows(rawRows || []);
       setIncludeIndex(includeIndex ?? false);
@@ -42,6 +43,7 @@ export default function useDataStore() {
       setIncludeResolved(includeResolved ?? true);
       setIncludeNotes(includeNotes ?? true);
       setIncludeFlaggedFor(includeFlaggedFor ?? true);
+      setVisibleCols(visibleCols || []);
     }
   }, []);
 
@@ -57,7 +59,8 @@ export default function useDataStore() {
           includeFlagged,
           includeResolved,
           includeNotes,
-          includeFlaggedFor
+          includeFlaggedFor,
+          visibleCols
         })
       );
     }
@@ -68,10 +71,11 @@ export default function useDataStore() {
     includeFlagged,
     includeResolved,
     includeNotes,
-    includeFlaggedFor
+    includeFlaggedFor,
+    visibleCols
   ]);
 
-  // Build rows, adding index and cleaning columns if included
+  // Build rows, adding index and cleaning columns
   useEffect(() => {
     const baseRows = rawRows.map((row) => ({ ...row }));
 
@@ -85,7 +89,6 @@ export default function useDataStore() {
       });
     }
 
-    // Add default cleaning columns if included
     baseRows.forEach((r) => {
       if (includeFlagged && r.flagged === undefined) r.flagged = false;
       else if (!includeFlagged) delete r.flagged;
@@ -111,7 +114,7 @@ export default function useDataStore() {
     includeFlaggedFor
   ]);
 
-  // Determine user columns (from uploaded file)
+  // Determine user-uploaded columns
   useEffect(() => {
     if (rawRows.length) {
       const userKeys = Object.keys(rawRows[0]);
@@ -119,72 +122,82 @@ export default function useDataStore() {
     }
   }, [rawRows]);
 
-  // Combine all columns for the grid based on visibility and include flags
+  // Determine which columns to show in grid
   const allColumnKeys = rows.length ? Object.keys(rows[0]) : [];
 
-  // Build final list of columns keys to show
-  const filteredColumns = allColumnKeys.filter((key) => {
-    // Show if it's a user column and visible
-    if (visibleCols.includes(key)) return true;
-
-    // Show if index and included
-    if (key === 'idx' && includeIndex) return true;
-
-    // Show cleaning columns only if their include flag is true
-    if (key === 'flagged' && includeFlagged) return true;
-    if (key === 'resolved' && includeResolved) return true;
-    if (key === 'notes' && includeNotes) return true;
-    if (key === 'flaggedFor' && includeFlaggedFor) return true;
-
-    return false;
+  let filteredColumns = allColumnKeys.filter((key) => {
+    if (key === 'idx') return includeIndex;
+    if (CLEANING_COLUMNS.includes(key)) {
+      if (key === 'flagged') return includeFlagged;
+      if (key === 'resolved') return includeResolved;
+      if (key === 'notes') return includeNotes;
+      if (key === 'flaggedFor') return includeFlaggedFor;
+      return false;
+    }
+    return visibleCols.includes(key);
   });
 
-  // Build column definitions with display names etc.
-  const initialColumns = (() => {
-    const cols = filteredColumns.map((key) => {
-      let name = key;
-      switch (key) {
-        case 'idx':
-          name = 'Index';
-          break;
-        case 'flagged':
-          name = 'Flagged';
-          break;
-        case 'resolved':
-          name = 'Resolved';
-          break;
-        case 'notes':
-          name = 'Notes';
-          break;
-        case 'flaggedFor':
-          name = 'Flagged For';
-          break;
-        default:
-          name = key.charAt(0).toUpperCase() + key.slice(1);
-      }
+  // Ensure idx is always first
+  if (includeIndex && filteredColumns.includes('idx')) {
+    filteredColumns = ['idx', ...filteredColumns.filter((k) => k !== 'idx')];
+  }
 
-      return {
-        key,
-        name,
-        width: key === 'idx' ? 80 : 150,
-        editable: key !== 'idx',
-        resizable: true,
-        sortable: true
-      };
-    });
-
-    // Move 'idx' column to the front if it exists
-    const idxIndex = cols.findIndex((c) => c.key === 'idx');
-    if (idxIndex > -1) {
-      const [idxCol] = cols.splice(idxIndex, 1);
-      cols.unshift(idxCol);
+  const initialColumns = filteredColumns.map((key) => {
+    let name = key;
+    switch (key) {
+      case 'idx':
+        name = 'Index';
+        break;
+      case 'flagged':
+        name = 'Flagged';
+        break;
+      case 'resolved':
+        name = 'Resolved';
+        break;
+      case 'notes':
+        name = 'Notes';
+        break;
+      case 'flaggedFor':
+        name = 'Flagged For';
+        break;
+      default:
+        name = key.charAt(0).toUpperCase() + key.slice(1);
     }
 
-    return cols;
-  })();
+    return {
+      key,
+      name,
+      width: key === 'idx' ? 80 : 150,
+      editable: key !== 'idx',
+      resizable: true,
+      sortable: true
+    };
+  });
 
-  function handleUpdateClick() {
-    setIndexStart(Math.max(1, pendingIndexStart));
+  // Visibility controls
+  function showAll() {
+    const userCols = rawRows.length ? Object.keys(rawRows[0]) : [];
+    setVisibleCols(userCols);
+  }
+
+  function hideAll() {
+    setVisibleCols([]);
+  }
+
+  function showAllCleaning() {
+    setIncludeIndex(true);
+    setIncludeFlagged(true);
+    setIncludeResolved(true);
+    setIncludeNotes(true);
+    setIncludeFlaggedFor(true);
+  }
+
+  function hideAllCleaning() {
+    setIncludeIndex(false);
+    setIncludeFlagged(false);
+    setIncludeResolved(false);
+    setIncludeNotes(false);
+    setIncludeFlaggedFor(false);
   }
 
   function toggleColumn(key) {
@@ -193,28 +206,17 @@ export default function useDataStore() {
     );
   }
 
-  function showAll() {
-    setVisibleCols(allColumnKeys);
-  }
-
-  function hideAll() {
-    setVisibleCols([]);
+  function handleUpdateClick() {
+    setIndexStart(Math.max(1, pendingIndexStart));
   }
 
   function clearData() {
     setRawRows([]);
     setRows([]);
     setVisibleCols([]);
-    setIncludeIndex(false);
-    setIndexStart(1);
-    setPendingIndexStart(1);
-    setIncludeFlagged(true);
-    setIncludeResolved(true);
-    setIncludeNotes(true);
-    setIncludeFlaggedFor(true);
     localStorage.removeItem('dataCache');
-    setFileInputKey(Date.now());
   }
+
 
   return {
     rawRows,
@@ -239,7 +241,9 @@ export default function useDataStore() {
     toggleColumn,
     showAll,
     hideAll,
-    clearData,
-    fileInputKey
+    showAllCleaning,
+    hideAllCleaning,
+    fileInputKey,
+    clearData
   };
 }

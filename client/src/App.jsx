@@ -48,18 +48,9 @@ export default function App() {
               includeFlaggedFor={store.includeFlaggedFor}
               setIncludeFlaggedFor={store.setIncludeFlaggedFor}
 
-              showAllCleaning={() => {
-                store.setIncludeFlagged(true);
-                store.setIncludeResolved(true);
-                store.setIncludeNotes(true);
-                store.setIncludeFlaggedFor(true);
-              }}
-              hideAllCleaning={() => {
-                store.setIncludeFlagged(false);
-                store.setIncludeResolved(false);
-                store.setIncludeNotes(false);
-                store.setIncludeFlaggedFor(false);
-              }}
+              showAllCleaning={store.showAllCleaning}
+              hideAllCleaning={store.hideAllCleaning}
+
             />
 
 
